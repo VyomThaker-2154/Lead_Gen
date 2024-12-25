@@ -72,6 +72,11 @@ export default function Home() {
       return;
     }
 
+    if (!keyword.trim()) {
+      setError("Please enter a search keyword");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setCurrentPage(1);
@@ -93,18 +98,20 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || "Failed to fetch results");
+        throw new Error(data.message || data.error || "Failed to fetch results");
       }
 
       if (data.success && Array.isArray(data.data)) {
         setResults(data.data);
-        setHasMore(data.hasMore);
+        setHasMore(Boolean(data.hasMore));
       } else {
-        throw new Error("Invalid response format");
+        throw new Error(data.message || "Invalid response format");
       }
     } catch (error) {
       console.error("Search error:", error);
-      setError(error instanceof Error ? error.message : "An unexpected error occurred");
+      setError(typeof error === 'object' && error !== null && 'message' in error 
+        ? String(error.message) 
+        : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

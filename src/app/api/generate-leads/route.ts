@@ -87,18 +87,28 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     if (!checkRateLimit(ip)) {
       return NextResponse.json({
         success: false,
-        error: "Rate limit exceeded"
+        error: "Rate limit exceeded",
+        message: "Too many requests, please try again later"
       } satisfies ApiResponse, { status: 429 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const { keyword, location, emailDomain, apiKey } = body;
 
     if (!apiKey) {
       return NextResponse.json({
         success: false,
-        error: "API key is required"
-      }, { status: 400 });
+        error: "API key is required",
+        message: "Please provide a valid API key"
+      } satisfies ApiResponse, { status: 400 });
+    }
+
+    if (!keyword) {
+      return NextResponse.json({
+        success: false,
+        error: "Keyword is required",
+        message: "Please provide a search keyword"
+      } satisfies ApiResponse, { status: 400 });
     }
 
     // Initialize Gemini with provided API key
@@ -235,8 +245,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
       return NextResponse.json({
         success: false,
         error: "Failed to fetch search results",
-        message: searchError instanceof Error ? searchError.message : "Unknown error"
-      }, { status: 500 });
+        message: searchError instanceof Error ? searchError.message : "Search operation failed"
+      } satisfies ApiResponse, { status: 500 });
     }
 
   } catch (error) {
@@ -244,8 +254,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>>
     return NextResponse.json({
       success: false,
       error: "Failed to process request",
-      message: error instanceof Error ? error.message : "Unknown error"
-    }, { status: 500 });
+      message: error instanceof Error ? error.message : "Internal server error"
+    } satisfies ApiResponse, { status: 500 });
   }
 }
 
@@ -260,13 +270,15 @@ export async function GET(): Promise<NextResponse<ApiResponse>> {
       success: true,
       status: "ok",
       ip: response.data.origin,
+      message: "Service is healthy"
     } satisfies ApiResponse);
   } catch (error) {
+    console.error("Health check error:", error);
     return NextResponse.json({
       success: false,
       status: "error",
       error: "Health check failed",
-      message: error instanceof Error ? error.message : "Unknown error"
-    }, { status: 500 });
+      message: error instanceof Error ? error.message : "Service is unavailable"
+    } satisfies ApiResponse, { status: 500 });
   }
 }
