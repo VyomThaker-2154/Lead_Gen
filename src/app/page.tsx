@@ -19,7 +19,7 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
 

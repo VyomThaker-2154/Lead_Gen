@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
           ]);
           
           const generatedText = result.response.text().trim();
-          let jsonStr = generatedText.replace(/```json\n?|```/g, '').trim();
+          const jsonStr = generatedText.replace(/```json\n?|```/g, '').trim();
           const cleanedJson = cleanJsonString(jsonStr);
           
           try {
