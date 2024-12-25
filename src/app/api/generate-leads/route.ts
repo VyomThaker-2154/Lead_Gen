@@ -49,6 +49,13 @@ function checkRateLimit(ip: string): boolean {
   return windowData.count <= MAX_REQUESTS_PER_WINDOW;
 }
 
+// Add this interface at the top of the file
+interface SearchResult {
+  title: string;
+  description: string;
+  link?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
@@ -90,7 +97,7 @@ export async function POST(req: NextRequest) {
 
       const $ = cheerio.load(response.data);
       
-      const searchResults = [];
+      const searchResults: SearchResult[] = [];
       $('.g').each((i, element) => {
         const title = $(element).find('h3').text();
         const description = $(element).find('.VwiC3b').text();

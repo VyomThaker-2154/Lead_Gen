@@ -26,13 +26,28 @@ const ITEMS_PER_PAGE = 10;
 // Add this type definition for the result structure
 interface BusinessResult {
   name: string;
-  email: string | { [key: string]: string };
+  email: string | Record<string, string>;
   phone: string | string[];
   location: string;
   description: string;
   website: string;
-  contact: string | { [key: string]: string };
+  contact: string | Record<string, string>;
 }
+
+// Update the formatField function with proper typing
+type FormattableValue = string | string[] | Record<string, string> | undefined | null;
+
+const formatField = (field: FormattableValue): string => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  if (Array.isArray(field)) return field.join(', ');
+  if (typeof field === 'object') {
+    return Object.entries(field)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+  }
+  return String(field);
+};
 
 export default function Home() {
   const [keyword, setKeyword] = useState("");
@@ -50,19 +65,6 @@ export default function Home() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const currentResults = results.slice(startIndex, endIndex);
-
-  // Helper function to format complex fields
-  const formatField = (field: any): string => {
-    if (!field) return '';
-    if (typeof field === 'string') return field;
-    if (Array.isArray(field)) return field.join(', ');
-    if (typeof field === 'object') {
-      return Object.entries(field)
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(', ');
-    }
-    return String(field);
-  };
 
   const handleSearch = async () => {
     if (!apiKey) {
