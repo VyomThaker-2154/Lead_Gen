@@ -56,24 +56,35 @@ interface SearchResult {
   link?: string;
 }
 
+// Add this interface for the API response
+interface ApiResponse {
+  success: boolean;
+  data?: any[];
+  error?: string;
+  message?: string;
+  resultsCount?: number;
+  totalFound?: number;
+  processingRate?: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     if (!checkRateLimit(ip)) {
-      return NextResponse.json(
-        { error: "Rate limit exceeded" },
-        { status: 429 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: "Rate limit exceeded"
+      }, { status: 429 });
     }
 
     const body = await req.json();
     const { keyword, location, emailDomain, apiKey } = body;
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: "API key is required"
+      }, { status: 400 });
     }
 
     // Initialize Gemini with provided API key
@@ -208,20 +219,19 @@ export async function POST(req: NextRequest) {
     } catch (searchError) {
       console.error("Search error:", searchError);
       return NextResponse.json({
+        success: false,
         error: "Failed to fetch search results",
-        details: searchError instanceof Error ? searchError.message : "Unknown error"
+        message: searchError instanceof Error ? searchError.message : "Unknown error"
       }, { status: 500 });
     }
 
   } catch (error) {
     console.error("API error:", error);
-    return NextResponse.json(
-      { 
-        error: "Failed to process request",
-        details: error instanceof Error ? error.message : "Unknown error"
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: "Failed to process request",
+      message: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
   }
 }
 
@@ -233,17 +243,16 @@ export async function GET() {
     });
 
     return NextResponse.json({
+      success: true,
       status: "ok",
       ip: response.data.origin,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json(
-      {
-        status: "error",
-        message: errorMessage,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      status: "error",
+      error: "Health check failed",
+      message: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
   }
 }

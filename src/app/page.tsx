@@ -75,6 +75,7 @@ export default function Home() {
     setLoading(true);
     setError("");
     setCurrentPage(1);
+    
     try {
       const response = await fetch("/api/generate-leads", {
         method: "POST",
@@ -92,17 +93,18 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch results");
+        throw new Error(data.error || data.message || "Failed to fetch results");
       }
 
       if (data.success && Array.isArray(data.data)) {
         setResults(data.data);
         setHasMore(data.hasMore);
       } else {
-        setError("Invalid response format");
+        throw new Error("Invalid response format");
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      console.error("Search error:", error);
+      setError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
