@@ -59,22 +59,36 @@ interface SearchResult {
 // Add this interface for the API response
 interface ApiResponse {
   success: boolean;
-  data?: any[];
+  data?: BusinessResult[];
   error?: string;
   message?: string;
   resultsCount?: number;
   totalFound?: number;
   processingRate?: number;
+  status?: string;
+  ip?: string;
+  details?: string;
 }
 
-export async function POST(req: NextRequest) {
+// Add BusinessResult interface to match the processed data
+interface BusinessResult {
+  name: string;
+  email: string | Record<string, string>;
+  phone: string | string[];
+  location: string;
+  description: string;
+  website: string;
+  contact: string | Record<string, string>;
+}
+
+export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse>> {
   try {
     const ip = req.headers.get("x-forwarded-for") || "unknown";
     if (!checkRateLimit(ip)) {
       return NextResponse.json({
         success: false,
         error: "Rate limit exceeded"
-      }, { status: 429 });
+      } satisfies ApiResponse, { status: 429 });
     }
 
     const body = await req.json();
@@ -129,14 +143,15 @@ export async function POST(req: NextRequest) {
 
       if (searchResults.length === 0) {
         return NextResponse.json({
+          success: false,
           error: "No results found",
           details: "The search returned no results"
-        }, { status: 404 });
+        } satisfies ApiResponse, { status: 404 });
       }
 
       // Process in smaller batches
       const BATCH_SIZE = 10;
-      const processedResults = [];
+      const processedResults: BusinessResult[] = [];
       
       for (let i = 0; i < searchResults.length; i += BATCH_SIZE) {
         const batch = searchResults.slice(i, i + BATCH_SIZE);
@@ -183,12 +198,11 @@ export async function POST(req: NextRequest) {
           const cleanedJson = cleanJsonString(jsonStr);
           
           try {
-            const batchProcessed = JSON.parse(cleanedJson);
+            const batchProcessed = JSON.parse(cleanedJson) as BusinessResult[];
             
             if (Array.isArray(batchProcessed)) {
-              // Filter out entries with no meaningful data
-              const validResults = batchProcessed.filter(entry => 
-                entry.name || entry.email || entry.phone || entry.website
+              const validResults = batchProcessed.filter((entry): entry is BusinessResult => 
+                Boolean(entry.name || entry.email || entry.phone || entry.website)
               );
               processedResults.push(...validResults);
             }
@@ -214,7 +228,7 @@ export async function POST(req: NextRequest) {
         resultsCount: processedResults.length,
         totalFound: searchResults.length,
         processingRate: Math.round((processedResults.length / searchResults.length) * 100)
-      });
+      } satisfies ApiResponse);
 
     } catch (searchError) {
       console.error("Search error:", searchError);
@@ -236,7 +250,7 @@ export async function POST(req: NextRequest) {
 }
 
 // Health check endpoint
-export async function GET() {
+export async function GET(): Promise<NextResponse<ApiResponse>> {
   try {
     const response = await axios.get("http://httpbin.org/ip", {
       timeout: 5000,
@@ -246,7 +260,7 @@ export async function GET() {
       success: true,
       status: "ok",
       ip: response.data.origin,
-    });
+    } satisfies ApiResponse);
   } catch (error) {
     return NextResponse.json({
       success: false,
